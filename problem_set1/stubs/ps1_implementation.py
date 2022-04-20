@@ -55,8 +55,7 @@ def gammaidx(X, k):
         distance = ((X[i] - X)**2).sum(axis=1) ** 0.5
         distance[i] = float('inf')
         distance = np.sort(distance)
-        for i in range(1, k+1):
-            _sum += distance[i-1]
+        _sum = distance[:k].sum()
         res.append(_sum / k)
     return np.array(res)
 
