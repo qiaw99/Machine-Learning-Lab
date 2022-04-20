@@ -92,6 +92,8 @@ class TestSheet1(unittest.TestCase):
 
         npt.assert_allclose(gamma, correct_gamma, err_msg='gamma is not correct')
     
+    
+
     def randrot(self, d):
         '''generate random orthogonal matrix'''
         M = 100. * (np.random.rand(d, d) - 0.5)
@@ -123,7 +125,7 @@ class TestSheet1(unittest.TestCase):
         plt.yticks([], [])
 
         plt.show()
-
+    '''
     def test_lle(self):
         n = 500
         Xt = 10. * np.random.rand(n, 2);
@@ -152,6 +154,6 @@ class TestSheet1(unittest.TestCase):
         res = imp.auc(np.array([+1, -1, -1, +1, +1, -1]), np.array([0.3, 0.4, 0.6, 0.5, 0.7, 0.8]), plot=False)
         npt.assert_allclose(res, 1./3., rtol=0.05, atol=5e-2, err_msg='AUC example failed.')
         print('res = %g should be 1/3' % res)
-        
+        '''
 if __name__ == '__main__':
     unittest.main()
