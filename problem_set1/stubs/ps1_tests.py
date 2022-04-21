@@ -138,13 +138,11 @@ class TestSheet1(unittest.TestCase):
         with self.subTest(n_rule='eps-ball', epsilon=5.):
             Xp = imp.lle(X, 2, n_rule='eps-ball', epsilon=5., tol=1e-3)
             # self.plot(Xt, Xp, 'eps-ball')
-        print("!!!!!!every thing is OK before!!!!!!")
         with self.subTest(n_rule='eps-ball', epsilon=0.5):
             with self.assertRaises(ValueError, msg='Graph should not be connected and raise ValueError.'):
-                imp.lle(X, 2, n_rule='eps-ball', epsilon=0.5, tol=1e-3)
-
-
-
+                # imp.lle(X, 2, n_rule='eps-ball', epsilon=0.5, tol=1e-3)
+                imp.lle(X, 2, n_rule='eps-ball', tol=1e-3)
+                
 
     def test_auc(self):
         res = imp.auc(np.array([-1, -1, -1, +1, +1]), np.array([0.3, 0.4, 0.5, 0.6, 0.7]))

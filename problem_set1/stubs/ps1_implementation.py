@@ -165,5 +165,6 @@ def lle(X, m, n_rule, tol=1e-2, k=None, epsilon=None):
     
     # choose m embeddings
     E = np.linalg.svd(M)[0][:,-(1+m):-1]
-
+    
     return E
+    
