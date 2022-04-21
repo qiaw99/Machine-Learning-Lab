@@ -15,6 +15,7 @@ Write your implementations in the given functions stubs!
 (c) Daniel Bartz, TU Berlin, 2013
     Jacob Kauffmann, TU Berlin, 2021
 """
+from itertools import count
 import numpy as np
 import scipy.linalg as la
 
@@ -35,17 +36,21 @@ class PCA():
         
         self.U = self.eigVects
         self.D = np.array(eigVals)
-        self.eigValIndice = np.argsort(eigVals)            #对特征值从小到大排序
+        # sort the eigen values asc
+        self.eigValIndice = np.argsort(eigVals)            
         
 
     def project(self, Xtest, m):
         n_eigValIndice = self.eigValIndice[-1:-(m+1):-1]
         self.n_eigVect=self.eigVects[:,n_eigValIndice]
-        self.lowDDataMat = self.Xtrain @ self.n_eigVect               #低维特征空间的数据
+
+        # get data from lower dimension
+        self.lowDDataMat = self.Xtrain @ self.n_eigVect               
         return self.lowDDataMat
 
     def denoise(self, Xtest, m):
-        return (self.lowDDataMat@self.n_eigVect.T)+ self.C  #重构数据
+        # reconstruction
+        return (self.lowDDataMat@self.n_eigVect.T)+ self.C 
 
 
 def gammaidx(X, k):
@@ -61,15 +66,105 @@ def gammaidx(X, k):
 
 
 def auc(y_true, y_pred, plot=False):
-    # ...
-    # you may use numpy.trapz here
-    pass
+    y_true = np.where(y_true==-1, 0, 1)
+    data = np.concatenate((np.vstack(y_true[::-1]), np.vstack(y_pred[::-1])), axis=1)
+    N = 120
+    XY = np.zeros((N, 2))
+    for i in range(N):
+        y = i / 10
+        params = xy(metrics(data, y))
+        XY[i, 0] = params['fpr']
+        XY[i, 1] = params['tpr']
+    pre_x = None
+    pre_y = None
+    area = 0
+    for i in range(N):
+        x = XY[i, 0]
+        y = XY[i, 1]
+        if pre_x != x and pre_x is not None:
+            area += (y + pre_y)/2 * (pre_x-x)
+        pre_x = x
+        pre_y = y
+    return area
 
 
-def lle(X, m, n_rule, param, tol=1e-2):
-    print('Step 1: Finding the nearest neighbours by rule ' + n_rule)
-    # ...
-    print('Step 2: local reconstruction weights')
-    # ...
-    print('Step 3: compute embedding')
-    # ...
+def metrics(data, y):
+    predicts = data[:, 1] >= y
+    # true pos
+    tp = sum(data[predicts, 0])
+    # false pos
+    fp = data[predicts, 0].shape[0] - tp
+    # false neg
+    fn = sum(data[~predicts, 0])
+    # true neg
+    tn = data[~predicts, 0].shape[0] - fn
+    return {
+        'tp':tp,
+        'fp':fp,
+        'tn':tn,
+        'fn':fn
+    }   
+
+def xy(params):
+    fpr = params['fp'] / (params['fp']+params['tn'])
+    tpr = params['tp'] / (params['tp']+params['fn'])
+    return {
+        'fpr':fpr,
+        'tpr':tpr
+    }
+
+def lle(X, m, n_rule, tol=1e-2, k=None, epsilon=None):
+    N = len(X)
+    W = np.zeros([N,N])
+
+    # print('Step 1: Finding the nearest neighbours by rule ' + n_rule)
+
+    if(n_rule == "knn"):
+        if k == None:
+            raise ValueError("[Error] k cannot be None")
+        for i in range(N):
+            x_i = X[i]
+            distance = np.sum(((x_i - X)**2), axis=1)
+            # get k neigbors
+            index = distance < (np.sort(distance))[k]
+            np.delete(index, i)
+            
+            diff = x_i - X[index]
+            C = diff @ diff.T + tol * np.identity(k)
+            w = np.linalg.solve(C, np.ones(k))
+            w /= w.sum()
+            
+            W[i, index] = w
+   
+
+    elif(n_rule =="eps-ball"):
+        if epsilon == None:
+            raise ValueError("[Error] epsilon cannot be None")
+        for i in range(N):
+            x_i = X[i]
+            distance = np.sum(((x_i - X)**2), axis=1) ** 0.5
+            distance[i] = float('inf')
+
+            # filter all points that are inside epsilon ball
+            index = distance < epsilon
+            
+            diff = x_i - X[index]
+            k = diff.shape[0]
+
+            C = diff @ diff.T + tol * np.identity(k)
+            w = np.linalg.solve(C, np.ones(k))
+            w /= w.sum()
+            
+            W[i, index] = w
+    else:
+        raise ValueError("[Error] Invalid n_rule")
+
+
+    # print('Step 3: compute embedding')
+    M = np.identity(N) - W - W.T + np.dot(W.T,W)
+    
+    # choose m embeddings
+    E = np.linalg.svd(M)[0][:,-(1+m):-1]
+    
+    return E
+    

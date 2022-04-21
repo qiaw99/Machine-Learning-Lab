@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import ps1_implementation as imp
 
 class TestSheet1(unittest.TestCase):
-    
+
     def test_pca(self):
         X = np.array([[ -2.133268233289599,   0.903819474847349,   2.217823388231679, -0.444779660856219,
                         -0.661480010318842,  -0.163814281248453,  -0.608167714051449,  0.949391996219125],
@@ -91,7 +91,7 @@ class TestSheet1(unittest.TestCase):
         npt.assert_equal(gamma.shape, correct_gamma.shape, err_msg='gamma does not have the correct shape')
 
         npt.assert_allclose(gamma, correct_gamma, err_msg='gamma is not correct')
-    
+
     def randrot(self, d):
         '''generate random orthogonal matrix'''
         M = 100. * (np.random.rand(d, d) - 0.5)
@@ -123,7 +123,7 @@ class TestSheet1(unittest.TestCase):
         plt.yticks([], [])
 
         plt.show()
-
+    
     def test_lle(self):
         n = 500
         Xt = 10. * np.random.rand(n, 2);
@@ -134,13 +134,15 @@ class TestSheet1(unittest.TestCase):
 
         with self.subTest(n_rule='knn', k=30):
             Xp = imp.lle(X, 2, n_rule='knn', k=30, tol=1e-3)
-            #self.plot(Xt, Xp, 'knn')
+            # self.plot(Xt, Xp, 'knn')
         with self.subTest(n_rule='eps-ball', epsilon=5.):
             Xp = imp.lle(X, 2, n_rule='eps-ball', epsilon=5., tol=1e-3)
-            #self.plot(Xt, Xp, 'eps-ball')
+            # self.plot(Xt, Xp, 'eps-ball')
         with self.subTest(n_rule='eps-ball', epsilon=0.5):
             with self.assertRaises(ValueError, msg='Graph should not be connected and raise ValueError.'):
-                imp.lle(X, 2, n_rule='eps-ball', epsilon=0.5, tol=1e-3)
+                # imp.lle(X, 2, n_rule='eps-ball', epsilon=0.5, tol=1e-3)
+                imp.lle(X, 2, n_rule='eps-ball', tol=1e-3)
+                
 
     def test_auc(self):
         res = imp.auc(np.array([-1, -1, -1, +1, +1]), np.array([0.3, 0.4, 0.5, 0.6, 0.7]))
@@ -152,6 +154,6 @@ class TestSheet1(unittest.TestCase):
         res = imp.auc(np.array([+1, -1, -1, +1, +1, -1]), np.array([0.3, 0.4, 0.6, 0.5, 0.7, 0.8]), plot=False)
         npt.assert_allclose(res, 1./3., rtol=0.05, atol=5e-2, err_msg='AUC example failed.')
         print('res = %g should be 1/3' % res)
-        
+
 if __name__ == '__main__':
     unittest.main()
