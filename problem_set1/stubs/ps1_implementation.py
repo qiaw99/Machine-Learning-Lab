@@ -147,6 +147,9 @@ def lle(X, m, n_rule, tol=1e-2, k=None, epsilon=None):
 
             # filter all points that are inside epsilon ball
             index = distance < epsilon
+
+            if(np.all(distance > epsilon) == True):
+                raise ValueError("[Error] No neighbors")
             
             diff = x_i - X[index]
             k = diff.shape[0]
