@@ -31,7 +31,6 @@ def usps():
     print(data_patterns.shape)
     pca = imp.PCA(data_patterns)
     eigen_values = pca.D
-    # print(pca.eigVects[:5, :].shape)
 
     
     flag = True
@@ -44,7 +43,6 @@ def usps():
 
         # All principal values
         plt.bar(np.arange(0, eigen_values.shape[0]), height=np.asarray(eigen_values, float), color='r')
-        # plt.xlabel("Number of pcs")
         plt.ylabel("Eigen values")
         plt.xlim([0,60])
         plt.ylim([0, 250])
@@ -55,7 +53,6 @@ def usps():
         plt.yticks([])
         plt.grid(False)
         plt.bar(np.arange(0, 25), height=np.asarray(eigen_values[:25], float))
-        # plt.xlabel("Number of pcs")
         plt.ylabel("Eigen values")
         plt.xlim([0,30])
         plt.ylim([0, 250])
@@ -65,7 +62,6 @@ def usps():
         plt.xticks([])
         plt.yticks([])
         plt.grid(False)
-        # plt.imshow(np.asarray(pca.eigVects[:5, :], float))
         plt.imshow(np.asarray(data_patterns, float))
         plt.title("original image")
 
@@ -75,7 +71,6 @@ def usps():
         plt.xticks([])
         plt.yticks([])
         plt.grid(False)
-        # plt.imshow(np.asarray(pca.eigVects[:5, :], float))
         plt.imshow(np.asarray(img,float))
         plt.title("Denoised image")
 
@@ -93,7 +88,6 @@ def usps():
         plt.grid(False)
         # All principal values
         plt.bar(np.arange(0, eigen_values.shape[0]), height=np.asarray(eigen_values, float), color='r')
-        # plt.xlabel("Number of pcs")
         plt.ylabel("Eigen values")
         plt.xlim([0,60])
         plt.ylim([0, 250])
@@ -104,7 +98,6 @@ def usps():
         plt.yticks([])
         plt.grid(False)
         plt.bar(np.arange(0, 25), height=np.asarray(eigen_values[:25], float))
-        # plt.xlabel("Number of pcs")
         plt.ylabel("Eigen values")
         plt.xlim([0,30])
         plt.ylim([0, 250])
@@ -115,7 +108,6 @@ def usps():
         plt.xticks([])
         plt.yticks([])
         plt.grid(False)
-        # plt.imshow(np.asarray(pca1.eigVects[:5, :], float))
         plt.imshow(np.asarray(low_gaussian_data, float))
         plt.title("Noisy image")
 
@@ -125,7 +117,6 @@ def usps():
         plt.xticks([])
         plt.yticks([])
         plt.grid(False)
-        # plt.imshow(np.asarray(pca.eigVects[:5, :], float))
         plt.imshow(np.asarray(img,float))
         plt.title("Denoised image")
 
@@ -141,7 +132,6 @@ def usps():
         plt.grid(False)
         # All principal values
         plt.bar(np.arange(0, eigen_values.shape[0]), height=np.asarray(eigen_values, float), color='r')
-        # plt.xlabel("Number of pcs")
         plt.ylabel("Eigen values")
         plt.xlim([0,60])
         plt.ylim([0, 250])
@@ -152,7 +142,6 @@ def usps():
         plt.yticks([])
         plt.grid(False)
         plt.bar(np.arange(0, 25), height=np.asarray(eigen_values[:25], float))
-        # plt.xlabel("Number of pcs")
         plt.ylabel("Eigen values")
         plt.xlim([0,30])
         plt.ylim([0, 250])
@@ -163,7 +152,6 @@ def usps():
         plt.xticks([])
         plt.yticks([])
         plt.grid(False)
-        # plt.imshow(np.asarray(pca2.eigVects[:5, :], float))
         plt.imshow(np.asarray(high_gaussian_data, float))
         plt.title("Noisy image")
 
@@ -173,7 +161,6 @@ def usps():
         plt.xticks([])
         plt.yticks([])
         plt.grid(False)
-        # plt.imshow(np.asarray(pca.eigVects[:5, :], float))
         plt.imshow(np.asarray(img,float))
         plt.title("Denoised image")
 
@@ -189,7 +176,6 @@ def usps():
         plt.grid(False)
         # All principal values
         plt.bar(np.arange(0, eigen_values.shape[0]), height=np.asarray(eigen_values, float), color='r')
-        # plt.xlabel("Number of pcs")
         plt.ylabel("Eigen values")
         plt.xlim([0,60])
         plt.ylim([0, 250])
@@ -200,7 +186,6 @@ def usps():
         plt.yticks([])
         plt.grid(False)
         plt.bar(np.arange(0, 25), height=np.asarray(eigen_values[:25], float))
-        # plt.xlabel("Number of pcs")
         plt.ylabel("Eigen values")
         plt.xlim([0,30])
         plt.ylim([0, 250])
@@ -211,7 +196,6 @@ def usps():
         plt.xticks([])
         plt.yticks([])
         plt.grid(False)
-        # plt.imshow(np.asarray(pca2.eigVects[:5, :], float))
         plt.imshow(np.asarray(outlier_data, float))
         plt.title("Noisy image")
 
@@ -221,7 +205,6 @@ def usps():
         plt.xticks([])
         plt.yticks([])
         plt.grid(False)
-        # plt.imshow(np.asarray(pca.eigVects[:5, :], float))
         plt.imshow(np.asarray(img,float))
         plt.title("Denoised image")
 
@@ -252,7 +235,6 @@ def lle_visualize(dataset='flatroll'):
 def lle_noise():
     ''' LLE under noise for assignment 8'''    
     data = np.load("../data/flatroll_data.npz")
-    # print(data.files)
     X_flat = data['Xflat']
     true_embedding = data['true_embedding']
     print(X_flat.shape, true_embedding.shape)
@@ -263,67 +245,36 @@ def lle_noise():
     data1 = np.copy(X_flat) + gaussian_1
     data2 = np.copy(X_flat) + gaussian_2
 
-    '''
-    Plotting the embedding in 2D
-    '''
-    # f = plt.figure(figsize=(20, 20))
-    # for t,k in enumerate([2, 10, 25, 40, 50, 60, 70, 80, 90, 100]):
-    #     embedding = imp.lle(data1.T, 3, 'knn', k=k)
-    #     ax = f.add_subplot(1,10,t+1, projection="3d")
-    #     ax.set_title('k=%d'%(k))
-    #     ax.set_xticks([])
-    #     ax.set_yticks([])
-        
-    #     ax.scatter(embedding[:, 0], embedding[:, 1], embedding[:, 2], c=true_embedding, cmap=plt.cm.Spectral) 
-    # plt.show()
+    # plotting for var=0.2
+    f = plt.figure(figsize=(14,8))
+    ax = f.add_subplot(1,2,1)
 
-    # f = plt.figure(figsize=(12,3))
-    # for t,k in enumerate([2, 10, 25, 40, 50, 60, 70, 80, 90, 100]):
-    #     embedding = imp.lle(data2.T, 2, 'knn', k=k)
+    embedding = imp.lle(data1.T, 1, 'knn', k=15)
+    # bad k(too large)
+    # embedding = imp.lle(data1.T, 1, 'knn', k=100)
+
+    ax.scatter(data1.T[:, 0], data1.T[:, 1], c=true_embedding)
+    ax.set_title('Dataset1')
+    ax.set_xticks([], [])
+    ax.set_yticks([], [])
+
+    ax = f.add_subplot(1,2,2)
+    ax.scatter(embedding[:,-1],np.zeros(shape=embedding[:,-1].shape), c=true_embedding)
+    ax.set_title('Dataset1 embedding with k = 5')
+    ax.set_xticks([], [])
+    ax.set_yticks([], [])
+    plt.show()
+
+    # f = plt.figure(figsize=(20,3))
+    # for t,k in enumerate([i for i in range(1, 50, 5)]):
+    #     embedding = imp.lle(data2.T, 1, 'knn', k=k)
     #     ax = f.add_subplot(1,11,t+1)
     #     ax.set_title('k=%d'%(k))
     #     ax.set_xticks([])
     #     ax.set_yticks([])
-    #     ax.scatter(embedding[:,0],embedding[:,1],c=true_embedding)    
-    # plt.show()
-
-    '''
-    Plotting the embedding in 3D
-    '''
-    f = plt.figure(figsize=(20, 20))
-    for t,k in enumerate([2, 10, 25, 40, 50, 60, 70, 80, 90, 100]):
-        embedding = imp.lle(data1.T, 3, 'knn', k=k)
-        ax = f.add_subplot(1,10,t+1, projection="3d")
-        ax.set_title('k=%d'%(k))
-        ax.set_xticks([])
-        ax.set_yticks([])
-        
-        ax.scatter(embedding[:, 0], embedding[:, 1], embedding[:, 2], c=true_embedding, cmap=plt.cm.Spectral) 
-    plt.show()
+    #     ax.scatter(embedding[:,0],np.zeros(shape=embedding[:,0].shape),c=true_embedding.T)    
 
 
-    f = plt.figure(figsize=(20, 20))
-    for t,k in enumerate([2, 10, 25, 40, 50, 60, 70, 80, 90, 100]):
-        embedding = imp.lle(data2.T, 3, 'knn', k=k)
-        ax = f.add_subplot(1,10,t+1, projection="3d")
-        ax.set_title('k=%d'%(k))
-        ax.set_xticks([])
-        ax.set_yticks([])
-        
-        ax.scatter(embedding[:, 0], embedding[:, 1], embedding[:, 2], c=true_embedding, cmap=plt.cm.Spectral) 
-    plt.show()
-
-    # The original one without variance
-    f = plt.figure(figsize=(20, 20))
-    for t,k in enumerate([2, 10, 25, 40, 50, 60, 70, 80, 90, 100]):
-        embedding = imp.lle(X_flat.T, 3, 'knn', k=k)
-        ax = f.add_subplot(1,10,t+1, projection="3d")
-        ax.set_title('k=%d'%(k))
-        ax.set_xticks([])
-        ax.set_yticks([])
-        
-        ax.scatter(embedding[:, 0], embedding[:, 1], embedding[:, 2], c=true_embedding, cmap=plt.cm.Spectral) 
-    plt.show()
 
 
 
