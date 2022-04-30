@@ -30,14 +30,25 @@ class PCA():
         self.D = np.zeros((self.d, ))
 
         self.Xtrain = Xtrain - self.C
-        cov = np.cov(self.Xtrain, rowvar=0)
+        # cov = np.cov(self.Xtrain, rowvar=0)
+
+        N, M = self.Xtrain.shape
+        cov = np.zeros((M, M))
+
+        for i in range(M):
+            mean_i = np.sum(self.Xtrain[:, i]) / N
+            for j in range(M):
+                mean_j = np.sum(self.Xtrain[:, j]) / N
+                cov[i, j] = np.sum((self.Xtrain[:, i] - mean_i) * (self.Xtrain[:, j] - mean_j)) / (N - 1)
+
         eigVals,self.eigVects=np.linalg.eig(np.mat(cov))
         self.eigVects = np.array(self.eigVects)
         
         self.U = self.eigVects
         self.D = np.array(eigVals)
         # sort the eigen values asc
-        self.eigValIndice = np.argsort(eigVals)            
+        self.eigValIndice = np.argsort(eigVals)    
+        self.lowDDataMat = None        
         
 
     def project(self, Xtest, m):
@@ -45,12 +56,15 @@ class PCA():
         self.n_eigVect=self.eigVects[:,n_eigValIndice]
 
         # get data from lower dimension
-        self.lowDDataMat = self.Xtrain @ self.n_eigVect               
+        self.lowDDataMat = (Xtest-np.mean(Xtest, axis=0)) @ self.n_eigVect               
         return self.lowDDataMat
 
     def denoise(self, Xtest, m):
         # reconstruction
-        return (self.lowDDataMat@self.n_eigVect.T)+ self.C 
+        if(self.lowDDataMat != None):
+            return (self.lowDDataMat@self.n_eigVect.T) + self.C 
+        else:
+            return (self.project(Xtest, m) @ self.n_eigVect.T) + self.C 
 
 
 def gammaidx(X, k):
