@@ -62,9 +62,9 @@ class PCA():
     def denoise(self, Xtest, m):
         # reconstruction
         if(self.lowDDataMat is None):
-            return (self.lowDDataMat@self.n_eigVect.T) + self.C 
+            return (self.lowDDataMat@self.n_eigVect.T) + np.mean(Xtest, axis=0)
         else:
-            return (self.project(Xtest, m) @ self.n_eigVect.T) + self.C 
+            return (self.project(Xtest, m) @ self.n_eigVect.T) + np.mean(Xtest, axis=0)
 
 
 def gammaidx(X, k):

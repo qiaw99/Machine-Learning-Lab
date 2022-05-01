@@ -246,34 +246,34 @@ def lle_noise():
     data2 = np.copy(X_flat) + gaussian_2
 
     # plotting for var=0.2
-    f = plt.figure(figsize=(14,8))
-    ax = f.add_subplot(1,2,1)
+    # f = plt.figure(figsize=(14,8))
+    # ax = f.add_subplot(1,2,1)
 
-    embedding = imp.lle(data1.T, 1, 'knn', k=15)
-    # bad k(too large)
-    # embedding = imp.lle(data1.T, 1, 'knn', k=100)
+    # embedding = imp.lle(data1.T, 1, 'knn', k=15)
+    # # bad k(too large)
+    # # embedding = imp.lle(data1.T, 1, 'knn', k=100)
 
-    ax.scatter(data1.T[:, 0], data1.T[:, 1], c=true_embedding)
-    ax.set_title('Dataset1')
-    ax.set_xticks([], [])
-    ax.set_yticks([], [])
+    # ax.scatter(data1.T[:, 0], data1.T[:, 1], c=true_embedding)
+    # ax.set_title('Dataset1')
+    # ax.set_xticks([], [])
+    # ax.set_yticks([], [])
 
-    ax = f.add_subplot(1,2,2)
-    ax.scatter(embedding[:,-1],np.zeros(shape=embedding[:,-1].shape), c=true_embedding)
-    ax.set_title('Dataset1 embedding with k = 5')
-    ax.set_xticks([], [])
-    ax.set_yticks([], [])
+    # ax = f.add_subplot(1,2,2)
+    # ax.scatter(embedding[:,-1],np.zeros(shape=embedding[:,-1].shape), c=true_embedding)
+    # ax.set_title('Dataset1 embedding with k = 5')
+    # ax.set_xticks([], [])
+    # ax.set_yticks([], [])
+    # plt.show()
+
+    f = plt.figure(figsize=(20,3))
+    for t,k in enumerate([i for i in range(1, 50, 5)]):
+        embedding = imp.lle(data2.T, 1, 'knn', k=k)
+        ax = f.add_subplot(1,11,t+1)
+        ax.set_title('k=%d'%(k))
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.scatter(embedding[:,0],np.zeros(shape=embedding[:,0].shape),c=true_embedding.T)    
     plt.show()
-
-    # f = plt.figure(figsize=(20,3))
-    # for t,k in enumerate([i for i in range(1, 50, 5)]):
-    #     embedding = imp.lle(data2.T, 1, 'knn', k=k)
-    #     ax = f.add_subplot(1,11,t+1)
-    #     ax.set_title('k=%d'%(k))
-    #     ax.set_xticks([])
-    #     ax.set_yticks([])
-    #     ax.scatter(embedding[:,0],np.zeros(shape=embedding[:,0].shape),c=true_embedding.T)    
-
 
 
 
