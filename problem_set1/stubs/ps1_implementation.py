@@ -18,6 +18,7 @@ Write your implementations in the given functions stubs!
 from itertools import count
 import numpy as np
 import scipy.linalg as la
+from matplotlib import pyplot as plt
 
 
 class PCA():
@@ -99,6 +100,13 @@ def auc(y_true, y_pred, plot=False):
             area += (y + pre_y)/2 * (pre_x-x)
         pre_x = x
         pre_y = y
+
+    if plot==True:
+        fpr = np.array(XY[:, 0])
+        tpr = np.array(XY[:, 1])
+        plt.plot(fpr, tpr)
+        plt.title("ROC curve")
+        plt.show()
     return area
 
 
