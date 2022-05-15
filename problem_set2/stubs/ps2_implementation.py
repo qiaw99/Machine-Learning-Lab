@@ -85,12 +85,13 @@ def kmeans_agglo(X, r):
         """
 
         X = X.T
-        n = X.shape[0]
+        n, d = X.shape
         loss = 0
+
         for i in range(n):
             for label in np.unique(r):
-                delta = np.argwhere(r==label).flatten()
-                tmp = X[i, delta]
+                idx = np.argwhere(r==label).flatten()
+                tmp = X[i, idx]
                 mu = np.mean(tmp, axis=0)
                 loss += ((tmp - mu)**2).sum(axis=0)
         return loss
@@ -103,15 +104,15 @@ def kmeans_agglo(X, r):
     if k < 2:
         return
 
+    # Initialization
     R = np.zeros((k-1,n))
     kmloss = np.zeros(k)
-    sizes = np.zeros(k-1)
     mergeidx = np.zeros((k-1,2))
 
     # First loss
     kmloss[0] = kmeans_crit(X, r)
 
-    for i in range (k-1):
+    for i in range(k-1):
 
         # Current cluster
         uniques = np.unique(r)
@@ -119,12 +120,13 @@ def kmeans_agglo(X, r):
         # Find a lower-cost merge
         minCost = np.infty
         c1 = c2 = -1
-        for count, val in enumerate(uniques):
-            for j in range(count+1, uniques.shape[0], 1):
-                temp = [val if x==uniques[j] else x for x in r]
+        
+        for counter, label in enumerate(uniques):
+            for j in range(counter+1, uniques.shape[0]):
+                temp = [label if x == uniques[j] else x for x in r]
 
                 if kmeans_crit(X, temp) < minCost:
-                    c1, c2 = count, j
+                    c1, c2 = counter, j
                     minCost = kmeans_crit(X, temp)
 
         mergeidx[i] = [uniques[c1], uniques[c2]]
@@ -132,7 +134,7 @@ def kmeans_agglo(X, r):
         r = [_max+1 if x == uniques[c1] or x == uniques[c2] else x for x in r]
         kmloss[i+1] = kmeans_crit(X, r)
         _max += 1
-        sizes[i] = np.count_nonzero(r == _max)
+
     return R, kmloss, mergeidx
 
 
@@ -143,9 +145,14 @@ def agglo_dendro(kmloss, mergeidx):
     kmloss: vector with loss after each step
     mergeidx: (k-1) x 2 matrix that contains merge idx for each step
     """
-
-    pass
-
+    from scipy.cluster import hierarchy
+    Z = hierarchy.linkage(kmloss, 'single')
+    plt.figure()
+    dn = hierarchy.dendrogram(Z)
+    plt.xlabel("Cluster index")
+    plt.ylabel("kmloss")
+    plt.title("Dendrogram of agglomerative clustering with k-means criterion")
+    plt.show()
 
 def norm_pdf(X, mu, C):
     """ Computes probability density function for multivariate gaussian
@@ -158,8 +165,10 @@ def norm_pdf(X, mu, C):
     Output:
     pdf value for each data point
     """
+    d, n = X.shape
 
-    pass
+    return 1 / ((2 * np.pi) **(d/2) * (np.linalg.det(C)**0.5) * np.exp(-0.5 * ((X - mu).T @ np.linalg.inv(C) @ (X - mu))))
+    
 
 
 def em_gmm(X, k, max_iter=100, init_kmeans=False, eps=1e-3):
@@ -177,7 +186,6 @@ def em_gmm(X, k, max_iter=100, init_kmeans=False, eps=1e-3):
     mu: (d x k) matrix with each cluster center in one column
     sigma: list of d x d covariance matrices
     """
-
     pass
 
 def plot_gmm_solution(X, mu, sigma):
