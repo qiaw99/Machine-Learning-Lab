@@ -146,7 +146,7 @@ def agglo_dendro(kmloss, mergeidx):
     mergeidx: (k-1) x 2 matrix that contains merge idx for each step
     """
     from scipy.cluster import hierarchy
-    Z = hierarchy.linkage(kmloss, 'single')
+    Z = hierarchy.linkage(np.reshape(kmloss, (len(kmloss), 1)), 'single')
     plt.figure()
     dn = hierarchy.dendrogram(Z)
     plt.xlabel("Cluster index")
