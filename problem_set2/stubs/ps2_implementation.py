@@ -25,6 +25,9 @@ from scipy.cluster.hierarchy import dendrogram  # you can use this
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D  # for when you create your own dendrogram
 
+colors = ['DarkSalmon', 'green', 'yellow', 'dimgray', 'cyan', 'blue', 'magenta']
+
+
 def kmeans(X, k, max_iter=100):
     """ Performs k-means clustering
 
@@ -169,7 +172,20 @@ def norm_pdf(X, mu, C):
 
     return 1 / ((2 * np.pi) **(d/2) * (np.linalg.det(C)**0.5) * np.exp(-0.5 * ((X - mu).T @ np.linalg.inv(C) @ (X - mu))))
     
+def randomInitCentroids(X, k):
+    """ Get random data points as cluster centers
+    Input:
+    X: (d x n) data matrix with each data point in one column
+    k: number of clusters
+    Output:
+    mu: (d x k) matrix with random cluster center in each column
+    """
 
+    d, n = X.shape
+    clusters = np.random.choice(n, k, replace=True)
+    mu = X[:, clusters]
+
+    return mu
 
 def em_gmm(X, k, max_iter=100, init_kmeans=False, eps=1e-3):
     """ Implements EM for Gaussian Mixture Models
@@ -186,7 +202,51 @@ def em_gmm(X, k, max_iter=100, init_kmeans=False, eps=1e-3):
     mu: (d x k) matrix with each cluster center in one column
     sigma: list of d x d covariance matrices
     """
-    pass
+    d, n = X.shape
+    sigma = []
+    if init_kmeans:
+        mu, r = kmeans(X,k)
+        pi = np.ones(k)
+        for idx, cl in enumerate(np.unique(r)):
+            pi[idx] = np.sum(r == cl) / n
+            sigma.append(np.cov(X[:, np.nonzero(r == cl)[0]]))
+
+    else:
+        mu = randomInitCentroids(X, k)
+        pi = np.ones(k) / k
+        for i in range(k):
+            sigma.append(np.eye(d))
+
+    prev_likelihood = 0
+    counter = 1
+    converged = False
+    while not converged:
+        ''' The E-Step '''
+        gamma = np.zeros([k, n])
+        for i in range(k):
+            gamma[i, :] = pi[i] * norm_pdf(X, mu[:, i], sigma[i])
+
+        likelihood = np.sum(np.log(np.sum(gamma, axis=0)))
+        gamma = gamma / np.sum(gamma, axis=0)  # Normalize gamma
+
+        ''' The M-Step '''
+        N = np.sum(gamma, axis=1)
+        pi = N / n
+        mu = np.dot(X, gamma.T) / N[np.newaxis, :]
+
+        for i in range(k):
+            X_zero_mean = X - mu[:, i][:, np.newaxis]
+            C = np.dot((gamma[i, :][np.newaxis, :] * X_zero_mean), X_zero_mean.T) / N[i]
+            sigma[i] = C
+
+        print('\nIteration:'  + str(counter) + '/' + str(max_iter))
+        print('Likelihood: ', likelihood)
+
+        counter = counter + 1
+        converged = (np.abs(prev_likelihood - likelihood) < eps) or (counter > max_iter)
+        prev_likelihood = likelihood
+
+    return pi, mu, sigma
 
 def plot_gmm_solution(X, mu, sigma):
     """ Plots covariance ellipses for GMM
@@ -197,4 +257,17 @@ def plot_gmm_solution(X, mu, sigma):
     sigma: list of d x d covariance matrices
     """
 
-    pass
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.scatter(X[0, :], X[1, :])
+    ax.scatter(mu[0, :], mu[1, :], marker='x', color='red', s=40)
+    ax.set_title('GMM with ' + str(len(sigma)) + ' clusters')
+    for k in range(len(sigma)):
+        # U, s , Vh = np.linalg.svd(sigma[k])
+        eigVal, eigVec = np.linalg.eig(sigma[k])
+
+        orient = np.arctan2(eigVec[1, 0], eigVec[0, 0]) * (180 / np.pi)
+        el = Ellipse(xy=mu[:, k], width=2.0 * np.sqrt(eigVal[0]), \
+                     height=2.0 * np.sqrt(eigVal[1]), angle=orient, \
+                     facecolor='none', edgecolor='red')
+        ax.add_patch(el)
