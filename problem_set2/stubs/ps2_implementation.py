@@ -20,10 +20,15 @@ Write the functions
 from __future__ import division
 from cv2 import detail_BestOf2NearestRangeMatcher  # always use float division
 import numpy as np
+import scipy
 from scipy.spatial.distance import cdist  # fast distance matrices
 from scipy.cluster.hierarchy import dendrogram  # you can use this
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D  # for when you create your own dendrogram
+from matplotlib.patches import Ellipse
+
+colors = ['DarkSalmon', 'green', 'yellow', 'dimgray', 'cyan', 'blue', 'magenta']
+
 
 def kmeans(X, k, max_iter=100):
     """ Performs k-means clustering
@@ -165,11 +170,16 @@ def norm_pdf(X, mu, C):
     Output:
     pdf value for each data point
     """
-    d, n = X.shape
+    def log_pdf(X, mu, C):
+        _, d = X.shape
+        inv = np.linalg.solve(C, (X - mu).T).T
+        temp = np.einsum('ij,ij->i', (X - mu), inv)
+        _, logdet = np.linalg.slogdet(C)
+        log2pi = np.log(2 * np.pi)
+        return -1/2 * (d * log2pi + logdet + temp)
 
-    return 1 / ((2 * np.pi) **(d/2) * (np.linalg.det(C)**0.5) * np.exp(-0.5 * ((X - mu).T @ np.linalg.inv(C) @ (X - mu))))
-    
-
+    logpdf = log_pdf(X, mu, C)
+    return logpdf
 
 def em_gmm(X, k, max_iter=100, init_kmeans=False, eps=1e-3):
     """ Implements EM for Gaussian Mixture Models
@@ -187,28 +197,59 @@ def em_gmm(X, k, max_iter=100, init_kmeans=False, eps=1e-3):
     sigma: list of d x d covariance matrices
     """
     n, d = X.shape
-    # mu = (k ,d)
-    # Get k random instances from X
+    pi = np.ones(k)
+    pi = pi / np.sum(pi)
+    mu = np.random.uniform(np.min(X), np.max(X), (k, d))
+    x_std = np.std(X)
+    sigma = np.repeat(0.6 * x_std * np.eye(d)[np.newaxis], k, axis=0)
+
     if init_kmeans:
-        mu, r, loss = kmeans(X, k)
+        mu, _, _ = kmeans(X, k)
+        sigma += np.repeat(eps * np.eye(d)[np.newaxis], k, axis=0)
     else:
-        index = np.random.choice(np.arange(n), size=k, replace=False)
-        mu = X[index]
+        sigma += np.repeat(0.5 * np.eye(d)[np.newaxis], k, axis=0)
 
-    sigma = np.zeros((d, d))
-    pi = np.ones((1, k)) * 1/k
-    gamma = []
+    loglik = [0]
 
-    iter = 0
-    while(iter <= max_iter):
-        for K in range(k):
-            for i in range(n):
-                dividend = pi[K]* norm_pdf(X[i,:],mu[K],sigma[K])
-                divisor = sum([(pi[k_] * norm_pdf(X[i,:], mu[k_], sigma[k_])) for k_ in range(k)])
-                gamma[K, i] = dividend/divisor
-    return pi, mu, sigma
+    log_r = np.zeros((n, k))
 
+    for i in range(max_iter):
 
+        # Expectation
+        log_pdf = np.zeros([k, n])
+        for c, m, s, p in zip(range(k), mu, sigma, pi):
+            log_pdf[c] = norm_pdf(X, m, s)
+            log_r[:, c] = np.log(p) + log_pdf[c]
+
+        loglik.append(np.log(np.sum(np.exp(log_r))))
+
+        log_sum = scipy.special.logsumexp(log_r, axis=1)[:, None]
+        log_r = log_r - log_sum
+        r = np.exp(log_r)
+
+        # Maximizaton
+        n_k = np.sum(r, axis=0)
+
+        # Calculating the component weights
+        pi = n_k / n
+
+        # Calculating the components means
+        mu = ((r.T @ X).T / n_k).T
+        X_mu = X[:, np.newaxis] - mu[np.newaxis]
+
+        # Calculating the component covariances
+        for j in range(k):
+            r_diag = np.diag(r[:, j])
+            sigma_k = (X_mu[:, j].T @ r_diag)
+            sigma[j] = (sigma_k @ X_mu[:, j]) / n_k[j]
+
+        sigma += np.repeat(eps * np.eye(d)[np.newaxis], k, axis=0)
+
+        # Convergence
+        if np.isclose(loglik[i], loglik[i - 1]):
+            break
+
+    return pi, mu, sigma, loglik[-1]
 
 def plot_gmm_solution(X, mu, sigma):
     """ Plots covariance ellipses for GMM
@@ -218,5 +259,19 @@ def plot_gmm_solution(X, mu, sigma):
     mu: (d x k) matrix with each cluster center in one column
     sigma: list of d x d covariance matrices
     """
+    num = len(mu)
 
-    pass
+    _, ax = plt.subplots()
+    plt.scatter(X[:, 0], X[:, 1])
+    plt.scatter(mu[:, 0], mu[:, 1], marker='.', c='blue')
+
+    for i in range(num):
+        shape, vec = np.linalg.eig(sigma[i])
+        ellipse = Ellipse(xy=(mu[i, 0], mu[i, 1]),
+                           width=shape[0] * 5,
+                           height=shape[1] * 5,
+                           angle=np.rad2deg(np.arccos(vec[0, 0])),
+                           facecolor='none',
+                           edgecolor='red')
+        ax.add_artist(ellipse)
+    plt.show()
