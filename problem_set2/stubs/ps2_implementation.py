@@ -20,10 +20,12 @@ Write the functions
 from __future__ import division
 from cv2 import detail_BestOf2NearestRangeMatcher  # always use float division
 import numpy as np
+import scipy
 from scipy.spatial.distance import cdist  # fast distance matrices
 from scipy.cluster.hierarchy import dendrogram  # you can use this
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D  # for when you create your own dendrogram
+from matplotlib.patches import Ellipse
 
 colors = ['DarkSalmon', 'green', 'yellow', 'dimgray', 'cyan', 'blue', 'magenta']
 
@@ -168,10 +170,16 @@ def norm_pdf(X, mu, C):
     Output:
     pdf value for each data point
     """
-    d, n = X.shape
+    d = X.shape[0]
+    X_mu = X - mu[:, np.newaxis]
+    C = C + (0.1 * np.eye(d))
+    det_C = np.linalg.det(C)
 
-    return 1 / ((2 * np.pi) **(d/2) * (np.linalg.det(C)**0.5) * np.exp(-0.5 * ((X - mu).T @ np.linalg.inv(C) @ (X - mu))))
-    
+    tmp1 = np.power((2 * np.pi), -d/2.) * np.power(det_C, -1/2.)
+    tmp2 = np.exp(-1/2. * (np.diag(np.dot(X_mu.T, scipy.linalg.solve(C, X_mu, sym_pos=True)))))
+
+    return tmp1 * tmp2
+
 def randomInitCentroids(X, k):
     """ Get random data points as cluster centers
     Input:
@@ -224,6 +232,7 @@ def em_gmm(X, k, max_iter=100, init_kmeans=False, eps=1e-3):
         ''' The E-Step '''
         gamma = np.zeros([k, n])
         for i in range(k):
+            print(X.shape)
             gamma[i, :] = pi[i] * norm_pdf(X, mu[:, i], sigma[i])
 
         likelihood = np.sum(np.log(np.sum(gamma, axis=0)))
@@ -246,7 +255,7 @@ def em_gmm(X, k, max_iter=100, init_kmeans=False, eps=1e-3):
         converged = (np.abs(prev_likelihood - likelihood) < eps) or (counter > max_iter)
         prev_likelihood = likelihood
 
-    return pi, mu, sigma
+    return pi, mu, sigma, likelihood
 
 def plot_gmm_solution(X, mu, sigma):
     """ Plots covariance ellipses for GMM
