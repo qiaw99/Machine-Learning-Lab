@@ -196,7 +196,6 @@ def em_gmm(X, k, max_iter=100, init_kmeans=False, eps=1e-3):
     mu: (d x k) matrix with each cluster center in one column
     sigma: list of d x d covariance matrices
     """
-
     n, d = X.shape
     pi = np.ones(k)
     pi = pi / np.sum(pi)
