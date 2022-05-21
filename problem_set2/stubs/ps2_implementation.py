@@ -186,7 +186,29 @@ def em_gmm(X, k, max_iter=100, init_kmeans=False, eps=1e-3):
     mu: (d x k) matrix with each cluster center in one column
     sigma: list of d x d covariance matrices
     """
-    pass
+    n, d = X.shape
+    # mu = (k ,d)
+    # Get k random instances from X
+    if init_kmeans:
+        mu, r, loss = kmeans(X, k)
+    else:
+        index = np.random.choice(np.arange(n), size=k, replace=False)
+        mu = X[index]
+
+    sigma = np.zeros((d, d))
+    pi = np.ones((1, k)) * 1/k
+    gamma = []
+
+    iter = 0
+    while(iter <= max_iter):
+        for K in range(k):
+            for i in range(n):
+                dividend = pi[K]* norm_pdf(X[i,:],mu[K],sigma[K])
+                divisor = sum([(pi[k_] * norm_pdf(X[i,:], mu[k_], sigma[k_])) for k_ in range(k)])
+                gamma[K, i] = dividend/divisor
+    return pi, mu, sigma
+
+
 
 def plot_gmm_solution(X, mu, sigma):
     """ Plots covariance ellipses for GMM
