@@ -20,6 +20,7 @@ Write the functions
 from __future__ import division
 from cv2 import detail_BestOf2NearestRangeMatcher  # always use float division
 import numpy as np
+import scipy
 from scipy.spatial.distance import cdist  # fast distance matrices
 from scipy.cluster.hierarchy import dendrogram  # you can use this
 import matplotlib.pyplot as plt
@@ -169,29 +170,16 @@ def norm_pdf(X, mu, C):
     Output:
     pdf value for each data point
     """
-    d = X.shape[0]
-    # print(np.exp(-0.5 * ((X - mu).T.shape)))
-    # print(np.linalg.inv(C).shape)
-    # print((X - mu).shape)
-    # X = X[:,0]
+    def log_pdf(X, mu, C):
+        _, d = X.shape
+        inv = np.linalg.solve(C, (X - mu).T).T
+        temp = np.einsum('ij,ij->i', (X - mu), inv)
+        _, logdet = np.linalg.slogdet(C)
+        log2pi = np.log(2 * np.pi)
+        return -1/2 * (d * log2pi + logdet + temp)
 
-    return 1 / ((2 * np.pi) **(d/2) * (np.linalg.det(C)**0.5) * np.exp(-0.5 * ((X - mu).T @ np.linalg.inv(C) @ (X - mu))))
-
-
-def randomInitCentroids(X, k):
-    """ Get random data points as cluster centers
-    Input:
-    X: (d x n) data matrix with each data point in one column
-    k: number of clusters
-    Output:
-    mu: (d x k) matrix with random cluster center in each column
-    """
-
-    d, n = X.shape
-    clusters = np.random.choice(n, k, replace=True)
-    mu = X[:, clusters]
-
-    return mu
+    logpdf = log_pdf(X, mu, C)
+    return logpdf
 
 def em_gmm(X, k, max_iter=100, init_kmeans=False, eps=1e-3):
     """ Implements EM for Gaussian Mixture Models
@@ -208,52 +196,61 @@ def em_gmm(X, k, max_iter=100, init_kmeans=False, eps=1e-3):
     mu: (d x k) matrix with each cluster center in one column
     sigma: list of d x d covariance matrices
     """
-    d, n = X.shape
-    sigma = []
+
+    n, d = X.shape
+    pi = np.ones(k)
+    pi = pi / np.sum(pi)
+    mu = np.random.uniform(np.min(X), np.max(X), (k, d))
+    x_std = np.std(X)
+    sigma = np.repeat(0.6 * x_std * np.eye(d)[np.newaxis], k, axis=0)
+
     if init_kmeans:
-        mu, r = kmeans(X,k)
-        pi = np.ones(k)
-        for idx, cl in enumerate(np.unique(r)):
-            pi[idx] = np.sum(r == cl) / n
-            sigma.append(np.cov(X[:, np.nonzero(r == cl)[0]]))
-
+        mu, _, _ = kmeans(X, k)
+        sigma += np.repeat(eps * np.eye(d)[np.newaxis], k, axis=0)
     else:
-        mu = randomInitCentroids(X, k)
-        pi = np.ones(k) / k
-        for i in range(k):
-            sigma.append(np.eye(d))
+        sigma += np.repeat(0.5 * np.eye(d)[np.newaxis], k, axis=0)
 
-    prev_likelihood = 0
-    counter = 1
-    converged = False
-    while not converged:
-        ''' The E-Step '''
-        gamma = np.zeros([k, n])
-        for i in range(k):
-            print(X.shape)
-            gamma[i, :] = pi[i] * norm_pdf(X, mu[:, i], sigma[i])
+    loglik = [0]
 
-        likelihood = np.sum(np.log(np.sum(gamma, axis=0)))
-        gamma = gamma / np.sum(gamma, axis=0)  # Normalize gamma
+    log_r = np.zeros((n, k))
 
-        ''' The M-Step '''
-        N = np.sum(gamma, axis=1)
-        pi = N / n
-        mu = np.dot(X, gamma.T) / N[np.newaxis, :]
+    for i in range(max_iter):
 
-        for i in range(k):
-            X_zero_mean = X - mu[:, i][:, np.newaxis]
-            C = np.dot((gamma[i, :][np.newaxis, :] * X_zero_mean), X_zero_mean.T) / N[i]
-            sigma[i] = C
+        # Expectation
+        log_pdf = np.zeros([k, n])
+        for c, m, s, p in zip(range(k), mu, sigma, pi):
+            log_pdf[c] = norm_pdf(X, m, s)
+            log_r[:, c] = np.log(p) + log_pdf[c]
 
-        print('\nIteration:'  + str(counter) + '/' + str(max_iter))
-        print('Likelihood: ', likelihood)
+        loglik.append(np.log(np.sum(np.exp(log_r))))
 
-        counter = counter + 1
-        converged = (np.abs(prev_likelihood - likelihood) < eps) or (counter > max_iter)
-        prev_likelihood = likelihood
+        log_sum = scipy.special.logsumexp(log_r, axis=1)[:, None]
+        log_r = log_r - log_sum
+        r = np.exp(log_r)
 
-    return pi, mu, sigma, likelihood
+        # Maximizaton
+        n_k = np.sum(r, axis=0)
+
+        # Calculating the component weights
+        pi = n_k / n
+
+        # Calculating the components means
+        mu = ((r.T @ X).T / n_k).T
+        X_mu = X[:, np.newaxis] - mu[np.newaxis]
+
+        # Calculating the component covariances
+        for j in range(k):
+            r_diag = np.diag(r[:, j])
+            sigma_k = (X_mu[:, j].T @ r_diag)
+            sigma[j] = (sigma_k @ X_mu[:, j]) / n_k[j]
+
+        sigma += np.repeat(eps * np.eye(d)[np.newaxis], k, axis=0)
+
+        # Convergence
+        if np.isclose(loglik[i], loglik[i - 1]):
+            break
+
+    return pi, mu, sigma, loglik[-1]
 
 def plot_gmm_solution(X, mu, sigma):
     """ Plots covariance ellipses for GMM
@@ -263,18 +260,19 @@ def plot_gmm_solution(X, mu, sigma):
     mu: (d x k) matrix with each cluster center in one column
     sigma: list of d x d covariance matrices
     """
+    num = len(mu)
 
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.scatter(X[0, :], X[1, :])
-    ax.scatter(mu[0, :], mu[1, :], marker='x', color='red', s=40)
-    ax.set_title('GMM with ' + str(len(sigma)) + ' clusters')
-    for k in range(len(sigma)):
-        # U, s , Vh = np.linalg.svd(sigma[k])
-        eigVal, eigVec = np.linalg.eig(sigma[k])
+    _, ax = plt.subplots()
+    plt.scatter(X[:, 0], X[:, 1])
+    plt.scatter(mu[:, 0], mu[:, 1], marker='.', c='blue')
 
-        orient = np.arctan2(eigVec[1, 0], eigVec[0, 0]) * (180 / np.pi)
-        el = Ellipse(xy=mu[:, k], width=2.0 * np.sqrt(eigVal[0]), \
-                     height=2.0 * np.sqrt(eigVal[1]), angle=orient, \
-                     facecolor='none', edgecolor='red')
-        ax.add_patch(el)
+    for i in range(num):
+        shape, vec = np.linalg.eig(sigma[i])
+        ellipse = Ellipse(xy=(mu[i, 0], mu[i, 1]),
+                           width=shape[0] * 5,
+                           height=shape[1] * 5,
+                           angle=np.rad2deg(np.arccos(vec[0, 0])),
+                           facecolor='none',
+                           edgecolor='red')
+        ax.add_artist(ellipse)
+    plt.show()
