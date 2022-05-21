@@ -20,7 +20,6 @@ Write the functions
 from __future__ import division
 from cv2 import detail_BestOf2NearestRangeMatcher  # always use float division
 import numpy as np
-import scipy
 from scipy.spatial.distance import cdist  # fast distance matrices
 from scipy.cluster.hierarchy import dendrogram  # you can use this
 import matplotlib.pyplot as plt
@@ -171,14 +170,13 @@ def norm_pdf(X, mu, C):
     pdf value for each data point
     """
     d = X.shape[0]
-    X_mu = X - mu[:, np.newaxis]
-    C = C + (0.1 * np.eye(d))
-    det_C = np.linalg.det(C)
+    # print(np.exp(-0.5 * ((X - mu).T.shape)))
+    # print(np.linalg.inv(C).shape)
+    # print((X - mu).shape)
+    # X = X[:,0]
 
-    tmp1 = np.power((2 * np.pi), -d/2.) * np.power(det_C, -1/2.)
-    tmp2 = np.exp(-1/2. * (np.diag(np.dot(X_mu.T, scipy.linalg.solve(C, X_mu, sym_pos=True)))))
+    return 1 / ((2 * np.pi) **(d/2) * (np.linalg.det(C)**0.5) * np.exp(-0.5 * ((X - mu).T @ np.linalg.inv(C) @ (X - mu))))
 
-    return tmp1 * tmp2
 
 def randomInitCentroids(X, k):
     """ Get random data points as cluster centers
